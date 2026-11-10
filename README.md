@@ -51,7 +51,7 @@ for someone with no picture, the picture an empty list shows. `design` can read 
 ## Get it
 
 In Craft, install Assets from the Agent Store, or run
-`craft agents add https://github.com/Rao-Craft-Agents/AssetsAgent.git`, then say `$assets` in a request.
+`craft agents add https://github.com/rao-craft/AssetsAgent.git`, then say `$assets` in a request.
 
 ## Requirements
 

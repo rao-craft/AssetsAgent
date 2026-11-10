@@ -14,7 +14,7 @@ let assetsRecord: GraniteRoster.Record = { GraniteRoster.record(AssetsAgent.self
 ```
 
 In [Craft](https://github.com/riteshpakala/Craft), install it from the Agent Store or with
-`craft agents add https://github.com/Rao-Craft-Agents/AssetsAgent.git`, then say `$assets` in a request:
+`craft agents add https://github.com/rao-craft/AssetsAgent.git`, then say `$assets` in a request:
 
 ```
 $assets brand the recipe app Simmer: its S in Didot on a warm orange gradient, a cream paper colour
