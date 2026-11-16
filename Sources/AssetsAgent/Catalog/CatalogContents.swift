@@ -1,6 +1,7 @@
 //  WHAT: The `Contents.json` of every kind of set the agent writes, in the shape Xcode 27 writes for it: the
 //        catalog and its folders, an app icon set (iOS single size in three appearances, the ten macOS sizes, the
-//        watchOS single size), a visionOS layered icon, a colour set, an image set, a symbol set and a data set.
+//        watchOS single size), a visionOS layered icon, a colour set, an image set (vector, or bitmaps by scale), a
+//        symbol set and a data set.
 //  PIN:  XCODE'S ORDER. Entries are listed in the order Xcode lists them (any, dark, tinted; then macOS from
 //        16 pt up, 1x before 2x; normal contrast before high), so a set reads as if Xcode had written it.
 
@@ -75,6 +76,16 @@ enum CatalogContents {
         if let rendering { properties["template-rendering-intent"] = .string(rendering) }
         var root: [String: CatalogJSON] = ["images": .array(entries), "info": info]
         if !properties.isEmpty { root["properties"] = .object(properties) }
+        return .object(root)
+    }
+
+    /// An image set of bitmaps, one a scale (`1x`, `2x`, `3x`), for every appearance; `rendering` as for `imageSet`.
+    static func scaledImageSet(_ images: [(scale: Int, file: String)], rendering: String?) -> CatalogJSON {
+        let entries: [CatalogJSON] = images.map {
+            .object(["filename": .string($0.file), "idiom": .string("universal"), "scale": .string("\($0.scale)x")])
+        }
+        var root: [String: CatalogJSON] = ["images": .array(entries), "info": info]
+        if let rendering { root["properties"] = .object(["template-rendering-intent": .string(rendering)]) }
         return .object(root)
     }
 

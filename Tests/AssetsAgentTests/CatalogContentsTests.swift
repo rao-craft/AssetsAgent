@@ -276,6 +276,44 @@ final class CatalogContentsTests: XCTestCase {
         XCTAssertEqual(avatar.files.map(\.path), ["Contents.json", "Avatar.pdf"])
     }
 
+    /// A bitmap set, as Xcode writes one dragged in at 1x, 2x and 3x: each image drawn at its own size.
+    func testBitmapImageSetsByScale() {
+        var sides: [Int] = []
+        let mark = ImageSets.bitmap("LogoMark", points: 128, rendering: "original") { sides.append($0); return Data() }
+        XCTAssertEqual(sides, [128, 256, 384])
+        XCTAssertEqual(mark.folder, "LogoMark.imageset")
+        XCTAssertEqual(mark.files.map(\.path), ["Contents.json", "LogoMark.png", "LogoMark@2x.png", "LogoMark@3x.png"])
+        XCTAssertEqual(String(decoding: mark.files[0].data, as: UTF8.self), """
+        {
+          "images" : [
+            {
+              "filename" : "LogoMark.png",
+              "idiom" : "universal",
+              "scale" : "1x"
+            },
+            {
+              "filename" : "LogoMark@2x.png",
+              "idiom" : "universal",
+              "scale" : "2x"
+            },
+            {
+              "filename" : "LogoMark@3x.png",
+              "idiom" : "universal",
+              "scale" : "3x"
+            }
+          ],
+          "info" : {
+            "author" : "xcode",
+            "version" : 1
+          },
+          "properties" : {
+            "template-rendering-intent" : "original"
+          }
+        }
+
+        """)
+    }
+
     func testSymbolDataAndLayeredIconSets() throws {
         XCTAssertEqual(CatalogContents.symbolSet(file: "whisk.svg").text, """
         {

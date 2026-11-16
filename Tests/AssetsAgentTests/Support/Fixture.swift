@@ -34,4 +34,15 @@ enum Fixture {
     static func write(_ input: AssetsAgent.Input, check: Bool = false) throws -> AssetsResult {
         try AssetsAgent.write(input, check: check, note: { _ in }, yield: { _ in })
     }
+
+    /// The package's own folder, found from this file.
+    static let package = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+
+    /// An example call in `Schema/examples`, as a host sends it, written into `folder`.
+    static func example(_ name: String, in folder: URL) throws -> AssetsAgent.Input {
+        var input = try JSONDecoder().decode(AssetsAgent.Input.self, from: Data(contentsOf: package.appendingPathComponent("Schema/examples/\(name).json")))
+        input.directory = folder.path
+        return input
+    }
 }

@@ -4,6 +4,8 @@
 //  PIN:  THE DARK LOGO IS THE DARK ICON. In dark appearance a badge takes the dark icon's ground and mark, with a
 //        faint rim so it still parts from a dark page; the wordmark turns to the brand's light ink.
 //  PIN:  TEXT IS OUTLINED. A logo carries the shapes of its letters, never a font.
+//  PIN:  A MEDALLION IS A PICTURE. It has no ink to template and no ground to sit on: `LogoSets` writes it as PNGs, and
+//        the lockup sets it beside the name as it is.
 
 import CoreGraphics
 import Foundation
@@ -30,6 +32,11 @@ struct LogoPainter {
     }
 
     private func drawBadge(_ look: Look, outline: Outline, in rect: CGRect, context: CGContext) {
+        if let medallion = art.medallion {
+            // The medallion is its own badge, the same in dark: drawn at three pixels a point for the page.
+            medallion.draw(in: rect, scale: 3, context: context)
+            return
+        }
         let shape = outline == .circle ? CGPath(ellipseIn: rect, transform: nil) : Squircle.path(rect, radius: rect.width * 0.225)
         if art.isWholeIcon {
             context.saveGState()

@@ -1,5 +1,5 @@
 //  WHAT: A call read into what it makes: the catalog, the sets, the platforms, the brand (name, mark, faces,
-//        colours), the palette, the symbols and the data, every value checked.
+//        colours), the palette, the symbols and the data, and the mark's view, every value checked.
 //  PIN:  EVERY PROBLEM AT ONCE. Each value that cannot be honoured adds its sentence and the reading goes on, so
 //        one refusal names everything to fix; a call is refused before anything is drawn or written.
 //  PIN:  ONE NAME, ONE SYMBOL. Xcode turns every asset's name into a Swift symbol (`Color(.herb)`, `Image(.logo)`),
@@ -20,10 +20,16 @@ struct AssetsPlan: Sendable {
     var palette: [PaletteColor]
     var symbols: [SymbolSpec]
     var data: [(spec: DataSpec, file: URL)]
+    /// The mark as a SwiftUI view: its type's name and its file, when the call names one.
+    var view: (name: String, file: URL)?
     var notes: [String]
 
     /// The symbols of the images the agent draws itself, which a symbol line may not take.
     static let drawn: Set<String> = ["appicon", "watchappicon", "logo", "logomark", "wordmark", "lockup", "launchlogo"]
+
+    /// Type names the mark's view may not take: its own file needs `View` and `Image`, and an app needs `App` and
+    /// `Scene`; the rest are Swift's.
+    static let takenTypeNames: Set<String> = ["View", "Image", "App", "Scene", "Self", "Any", "Type", "Protocol"]
 
     /// The Swift symbol Xcode generates for an asset, compared without case: its letters and digits, a colour's
     /// trailing `Color` dropped (`AccentColor` is `accent`, `pin.fill` is `pinfill`).
@@ -118,10 +124,12 @@ struct AssetsPlan: Sendable {
             if !symbols.isEmpty && !sets.contains(.symbols) { notes.append("the symbols lines were left out: `sets` does not ask for symbols") }
             if !data.isEmpty && !sets.contains(.data) { notes.append("the data lines were left out: `sets` does not ask for data") }
         } else if madeBefore, input.mark == nil, input.letters == nil, input.shape == nil, input.image == nil,
-                  input.background == nil, input.foreground == nil, input.font == nil {
+                  input.background == nil, input.foreground == nil, input.font == nil,
+                  input.metal == nil, input.backing == nil, input.motif == nil, input.seed == nil {
             // A catalog that has its icon, asked for more: only what the lines give, so a palette never redraws the brand.
+            // The mark's view alone is something new: it writes the view and no set.
             sets = (accent == nil ? [] : [.accent]) + (palette.isEmpty ? [] : [.colors]) + (symbols.isEmpty ? [] : [.symbols]) + (data.isEmpty ? [] : [.data])
-            if sets.isEmpty { reasons.append("the catalog already has its icon and this call gives nothing new: add palette, symbols or data lines, or name the mark to draw it again") }
+            if sets.isEmpty && input.view == nil { reasons.append("the catalog already has its icon and this call gives nothing new: add palette, symbols or data lines, or name the mark to draw it again") }
             else { notes.append("the icon, logos, launch logo and placeholders were kept: name the mark, its letters, shape, image, background or font to draw them again") }
         } else {
             sets = [.icon, .accent] + (palette.isEmpty ? [] : [.colors]) + [.logos, .launch, .placeholders, .empty]
@@ -143,7 +151,17 @@ struct AssetsPlan: Sendable {
         if let text = input.foreground {
             if let color = SRGBColor(hex: text) { foreground = color } else { reasons.append("foreground `\(text)` is not a hex colour like #FFFFFF") }
         }
-        var kind = input.mark ?? (input.image != nil ? .image : input.shape != nil ? .shape : .monogram)
+        // The medallion's values, each read whatever the mark, so a call hears about all of them at once.
+        var medallion = Medallion()
+        if let text = input.metal { do { medallion.metal = try MedallionMetal.read(text) } catch { reasons.append("\(error)") } }
+        if let text = input.backing { do { medallion.backing = try MedallionBacking.read(text) } catch { reasons.append("\(error)") } }
+        if let text = input.motif { do { medallion.motif = try MedallionMotif.read(text) } catch { reasons.append("\(error)") } }
+        if let seed = input.seed {
+            if seed < 0 { reasons.append("seed \(seed) is negative: give a whole number, 0 or more") } else { medallion.seed = seed }
+        }
+        let medallionFields = [("metal", input.metal), ("backing", input.backing), ("motif", input.motif), ("seed", input.seed.map(String.init))]
+            .filter { $0.1 != nil }.map { "`\($0.0)`" }
+        var kind = input.mark ?? (input.image != nil ? .image : input.shape != nil ? .shape : !medallionFields.isEmpty ? .medallion : .monogram)
         var glyph: AssetsShape?
         if let shape = kind.namedShape { glyph = shape; kind = .shape }
         var picture: Picture?
@@ -192,18 +210,55 @@ struct AssetsPlan: Sendable {
             else {
                 reasons.append("mark is image and `image` names no file: give a PNG, JPEG, PDF or SVG in the project")
             }
+        case .medallion:
+            mark = .medallion(medallion)
         case .ring, .knot, .wave, .spark, .stack, .leaf, .bubble, .grid:
             break   // a shape's own name was read as `shape` above
+        }
+        if kind != .medallion, !medallionFields.isEmpty {
+            let named = medallionFields.count == 1 ? medallionFields[0] : medallionFields.dropLast().joined(separator: ", ") + " and " + medallionFields.last!
+            reasons.append("\(named) \(medallionFields.count == 1 ? "draws" : "draw") the medallion, and the mark is \(kind.rawValue): give mark medallion, or leave \(medallionFields.count == 1 ? "it" : "them") out")
         }
         let wordmark = (input.wordmark ?? "").trimmingCharacters(in: .whitespaces).isEmpty ? name : input.wordmark!.trimmingCharacters(in: .whitespaces)
         if sets.contains(.logos), fontFound {
             do { _ = try TextOutline.path(wordmark, font: fonts.wordmark, size: 64) } catch { reasons.append("\(error)") }
         }
 
+        // The mark as a view: a SwiftUI type in `viewInto`, else Shared/Design, drawing the catalog's LogoMark.
+        var view: (name: String, file: URL)?
+        var folder = (input.viewInto ?? "").trimmingCharacters(in: .whitespaces)
+        while folder.hasSuffix("/") { folder.removeLast() }
+        if let given = input.view {
+            let typeName = given.trimmingCharacters(in: .whitespaces)
+            var named = true
+            if !isTypeName(typeName) {
+                reasons.append("view `\(given)` is not a Swift type name: give one like SeerMark, a capital letter then letters and digits"); named = false
+            } else if takenTypeNames.contains(typeName) {
+                reasons.append("view `\(typeName)` is a name its own file or the app needs: name it after the app, like SeerMark"); named = false
+            }
+            if folder.hasSuffix(".swift") {
+                reasons.append("viewInto `\(input.viewInto ?? "")` names a file: give its folder, and the file is named after the view"); named = false
+            }
+            if named {
+                view = (typeName, files.resolve(folder.isEmpty ? "Shared/Design" : folder).appendingPathComponent("\(typeName).swift"))
+                if !sets.contains(.logos), !manager.fileExists(atPath: catalog.appendingPathComponent("LogoMark.imageset").path) {
+                    notes.append("\(typeName) draws Image(\"LogoMark\") and the catalog has no LogoMark: add logos to sets")
+                }
+            }
+        } else if input.viewInto != nil {
+            reasons.append("viewInto places the mark's view and `view` names none: give view a type name like SeerMark, or leave viewInto out")
+        }
+
         guard reasons.isEmpty else { throw AssetsError.refused(reasons) }
         let brand = Brand(name: name, wordmark: wordmark, mark: mark, fonts: fonts, tones: tones)
         return AssetsPlan(files: files, catalog: catalog, sets: sets, platforms: platforms, brand: brand, contrast: input.contrast ?? false,
-                          accent: accent, palette: palette, symbols: symbols, data: data, notes: notes)
+                          accent: accent, palette: palette, symbols: symbols, data: data, view: view, notes: notes)
+    }
+
+    /// Whether `name` is a Swift type name as an app spells one: a capital letter, then letters, digits and underscores.
+    static func isTypeName(_ name: String) -> Bool {
+        guard let first = name.unicodeScalars.first, ("A"..."Z").contains(first) else { return false }
+        return name.unicodeScalars.allSatisfy { ("A"..."Z").contains($0) || ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "_" }
     }
 
     /// The first letter of a one-word name, the first letters of the first two words of a longer one.

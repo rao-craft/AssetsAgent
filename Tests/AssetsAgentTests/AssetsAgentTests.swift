@@ -16,10 +16,14 @@ final class AssetsAgentTests: XCTestCase {
         XCTAssertEqual(assets.schema, .object([
             .init(name: "into", schema: .string, required: false),
             .init(name: "name", schema: .string, required: false),
-            .init(name: "mark", schema: .choice(["monogram", "shape", "image", "ring", "knot", "wave", "spark", "stack", "leaf", "bubble", "grid"]), required: false),
+            .init(name: "mark", schema: .choice(["monogram", "shape", "image", "medallion", "ring", "knot", "wave", "spark", "stack", "leaf", "bubble", "grid"]), required: false),
             .init(name: "letters", schema: .string, required: false),
             .init(name: "shape", schema: .choice(["ring", "knot", "wave", "spark", "stack", "leaf", "bubble", "grid"]), required: false),
             .init(name: "image", schema: .string, required: false),
+            .init(name: "metal", schema: .string, required: false),
+            .init(name: "backing", schema: .string, required: false),
+            .init(name: "motif", schema: .string, required: false),
+            .init(name: "seed", schema: .integer, required: false),
             .init(name: "background", schema: .array(.string), required: false),
             .init(name: "foreground", schema: .string, required: false),
             .init(name: "palette", schema: .array(.string), required: false),
@@ -30,18 +34,22 @@ final class AssetsAgentTests: XCTestCase {
             .init(name: "symbols", schema: .array(.string), required: false),
             .init(name: "data", schema: .array(.string), required: false),
             .init(name: "platforms", schema: .array(.choice(["ios", "macos", "watchos", "visionos"])), required: false),
+            .init(name: "view", schema: .string, required: false),
+            .init(name: "viewInto", schema: .string, required: false),
             .init(name: "directory", schema: .string, required: false),
         ]))
         XCTAssertTrue(assets.takesDirectory)
-        XCTAssertEqual(Set(assets.fields.keys), ["into", "name", "mark", "letters", "shape", "image", "background", "foreground", "palette",
-                                                 "contrast", "font", "wordmark", "sets", "symbols", "data", "platforms"],
+        XCTAssertEqual(Set(assets.fields.keys), ["into", "name", "mark", "letters", "shape", "image", "metal", "backing", "motif", "seed",
+                                                 "background", "foreground", "palette", "contrast", "font", "wordmark", "sets", "symbols",
+                                                 "data", "platforms", "view", "viewInto"],
                        "a note beside every field the model sees, and none for the host's folder")
         XCTAssertEqual(assets.lanes, 2)
     }
 
     func testTheGuideTeachesEveryModeWithACallThatDecodes() throws {
         let guide = AnyAgentPackage(AssetsAgent.self).guide
-        for word in [#""letters""#, #""mark": "shape""#, #""mark": "image""#, "palette", "#light/#dark", "accent", "LaunchBackground",
+        for word in [#""letters""#, #""mark": "shape""#, #""mark": "image""#, #""mark": "medallion""#, "`metal`", "`backing`", "`motif`",
+                     "`seed`", #""view": "SeerMark""#, "`viewInto`", "palette", "#light/#dark", "accent", "LaunchBackground",
                      "contrast", #""symbols""#, "0…100", ".fill", #""data""#, "sets", "platforms", "into", "SF Pro", #"Image("Logo")"#] {
             XCTAssertTrue(guide.contains(word), "the guide says \(word)")
         }
@@ -55,6 +63,33 @@ final class AssetsAgentTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(examples.count, 5, "an example call for each mode")
         for example in examples {
             XCTAssertNoThrow(try JSONDecoder().decode(AssetsAgent.Input.self, from: Data(example.utf8)), example)
+        }
+    }
+
+    /// `Schema/assets.input.schema.json` says what the package's schema says, every field's note included.
+    /// `ASSETS_WRITE_SCHEMA=1` writes it again from the package.
+    func testTheInputSchemaFileIsThePackagesSchema() throws {
+        let assets = AnyAgentPackage(AssetsAgent.self)
+        var expected = try XCTUnwrap(JSONSerialization.jsonObject(with: assets.schema.jsonSchema(notes: assets.fields, hiding: ["directory"])) as? [String: Any])
+        expected["$id"] = "https://github.com/rao-craft/AssetsAgent/blob/main/Schema/assets.input.schema.json"
+        expected["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        expected["description"] = "Every field a call to assets may give; `directory` is Craft's, never the model's."
+        expected["title"] = "What assets takes (craft-agent/1)"
+        let url = Fixture.package.appendingPathComponent("Schema/assets.input.schema.json")
+        if ProcessInfo.processInfo.environment["ASSETS_WRITE_SCHEMA"] == "1" {
+            let data = try JSONSerialization.data(withJSONObject: expected, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+            try (String(decoding: data, as: UTF8.self) + "\n").write(to: url, atomically: true, encoding: .utf8)
+        }
+        let found = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? NSDictionary)
+        XCTAssertEqual(found, expected as NSDictionary, "\(url.lastPathComponent) is not what the package says: run with ASSETS_WRITE_SCHEMA=1")
+    }
+
+    /// Every example call in `Schema/examples` is one the agent's input decodes.
+    func testTheExampleCallsDecode() throws {
+        let examples = try FileManager.default.contentsOfDirectory(atPath: Fixture.package.appendingPathComponent("Schema/examples").path).filter { $0.hasSuffix(".json") }
+        XCTAssertTrue(examples.contains("seer.json"))
+        for name in examples {
+            XCTAssertNoThrow(try Fixture.example(String(name.dropLast(5)), in: try Fixture.folder()), name)
         }
     }
 

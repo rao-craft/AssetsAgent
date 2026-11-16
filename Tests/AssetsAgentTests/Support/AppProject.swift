@@ -2,9 +2,10 @@ import Foundation
 
 /// A minimal app project to build a catalog in: iOS and macOS app targets on one synchronized `Shared` folder, the
 /// app icon and accent named, Xcode's asset symbols generated, and an iOS Info.plist whose launch screen names the
-/// launch logo and colour. Its Mac app, run with `--check-assets`, prints what it found in its own bundle.
+/// launch logo and colour. Its Mac app, run with `--check-assets`, prints what it found in its own bundle; its one
+/// screen is `view` (`BrandView`), every kind of asset a recipe call makes unless another is given.
 enum AppProject {
-    static func write(name: String, into folder: URL) throws {
+    static func write(name: String, into folder: URL, view: String = brandView) throws {
         let manager = FileManager.default
         let project = folder.appendingPathComponent("\(name).xcodeproj")
         try manager.createDirectory(at: project, withIntermediateDirectories: true)
@@ -13,7 +14,7 @@ enum AppProject {
         let shared = folder.appendingPathComponent("Shared")
         try manager.createDirectory(at: shared, withIntermediateDirectories: true)
         try app(name).write(to: shared.appendingPathComponent("App.swift"), atomically: true, encoding: .utf8)
-        try brandView.write(to: shared.appendingPathComponent("BrandView.swift"), atomically: true, encoding: .utf8)
+        try view.write(to: shared.appendingPathComponent("BrandView.swift"), atomically: true, encoding: .utf8)
         try check.write(to: shared.appendingPathComponent("AssetCheck.swift"), atomically: true, encoding: .utf8)
     }
 
@@ -81,6 +82,28 @@ enum AppProject {
             .padding()
             .background(Color("paper"))
             .tint(Color.accentColor)
+        }
+    }
+
+    """
+
+    /// The screen the kits draw the mark on: `SeerMark()` at 100 points over the welcome, and at 96 on a card with the
+    /// shadow a kit adds.
+    static let markView = """
+    import SwiftUI
+
+    struct BrandView: View {
+        var body: some View {
+            VStack(spacing: 24) {
+                SeerMark()
+                    .frame(width: 100, height: 100)
+                Text("Welcome to Seer")
+                    .font(.title)
+                SeerMark()
+                    .frame(width: 96, height: 96)
+                    .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
+            }
+            .padding()
         }
     }
 

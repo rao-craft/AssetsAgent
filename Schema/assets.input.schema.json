@@ -1,0 +1,159 @@
+{
+  "$id" : "https://github.com/rao-craft/AssetsAgent/blob/main/Schema/assets.input.schema.json",
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "description" : "Every field a call to assets may give; `directory` is Craft's, never the model's.",
+  "properties" : {
+    "background" : {
+      "description" : "the icon's background as hex: one colour (solid) or two or three (a gradient, top to bottom); picked from the name when left out",
+      "items" : {
+        "type" : "string"
+      },
+      "type" : "array"
+    },
+    "backing" : {
+      "description" : "what the medallion is set in: a hex colour for its stone, or none for nothing (the dish is then the image's edge, clear outside it); a light stone grey when left out",
+      "type" : "string"
+    },
+    "contrast" : {
+      "description" : "whether every colour set also gets high-contrast colours; false when left out",
+      "type" : "boolean"
+    },
+    "data" : {
+      "description" : "one data set a line: `name: path/to/file` in the project",
+      "items" : {
+        "type" : "string"
+      },
+      "type" : "array"
+    },
+    "font" : {
+      "description" : "the font family or face for the monogram and wordmark: a bundled macOS font such as Avenir Next (the default), Futura, Georgia, Didot or Menlo; never SF Pro",
+      "type" : "string"
+    },
+    "foreground" : {
+      "description" : "the mark's colour on the icon as hex; white or ink, by contrast, when left out; a colour that would show under 3:1 on the background is set aside for white or ink",
+      "type" : "string"
+    },
+    "image" : {
+      "description" : "the picture when mark is image, relative to the project: PNG, JPEG, PDF or SVG; a square opaque PNG is used as the whole icon",
+      "type" : "string"
+    },
+    "into" : {
+      "description" : "the asset catalog, relative to the project; Shared/Assets.xcassets when left out",
+      "type" : "string"
+    },
+    "letters" : {
+      "description" : "the monogram's one to three letters; the name's initials when left out",
+      "type" : "string"
+    },
+    "mark" : {
+      "description" : "what the mark is: monogram (letters, the default), shape (a geometric glyph), image (a picture in the project) or medallion (a struck-metal medallion set in stone, drawn as PNGs); a shape's own name (spark, knot, …) draws that shape",
+      "enum" : [
+        "monogram",
+        "shape",
+        "image",
+        "medallion",
+        "ring",
+        "knot",
+        "wave",
+        "spark",
+        "stack",
+        "leaf",
+        "bubble",
+        "grid"
+      ],
+      "type" : "string"
+    },
+    "metal" : {
+      "description" : "the medallion's metal: silver (the default), bronze, gold, or a hex colour for its middle tone",
+      "type" : "string"
+    },
+    "motif" : {
+      "description" : "the medallion's engraved band: swirls (raised S-curls, the default) or plain",
+      "type" : "string"
+    },
+    "name" : {
+      "description" : "the app's name: the monogram's initials and the wordmark; the Xcode project's name when left out",
+      "type" : "string"
+    },
+    "palette" : {
+      "description" : "one colour set a line, `name: #light/#dark` (one hex for both); `accent:` also sets AccentColor, `LaunchBackground:` colours the launch screen",
+      "items" : {
+        "type" : "string"
+      },
+      "type" : "array"
+    },
+    "platforms" : {
+      "description" : "the platforms the icon is drawn for: ios, macos, watchos, visionos; ios and macos when left out",
+      "items" : {
+        "enum" : [
+          "ios",
+          "macos",
+          "watchos",
+          "visionos"
+        ],
+        "type" : "string"
+      },
+      "type" : "array"
+    },
+    "seed" : {
+      "description" : "a whole number, 0 or more, for the medallion's grain (its brushing and its stone): the same seed draws the same pixels; 0 when left out",
+      "type" : "integer"
+    },
+    "sets" : {
+      "description" : "what to make: icon, accent, colors, logos, launch, placeholders, empty, symbols, data; all but symbols and data when left out",
+      "items" : {
+        "enum" : [
+          "icon",
+          "accent",
+          "colors",
+          "logos",
+          "launch",
+          "placeholders",
+          "empty",
+          "symbols",
+          "data"
+        ],
+        "type" : "string"
+      },
+      "type" : "array"
+    },
+    "shape" : {
+      "description" : "the glyph when mark is shape: ring, knot, wave, spark, stack, leaf, bubble or grid",
+      "enum" : [
+        "ring",
+        "knot",
+        "wave",
+        "spark",
+        "stack",
+        "leaf",
+        "bubble",
+        "grid"
+      ],
+      "type" : "string"
+    },
+    "symbols" : {
+      "description" : "one custom symbol a line: `name: SVG path data in a 0…100 box`, stroked at every weight; a name ending .fill is filled",
+      "items" : {
+        "type" : "string"
+      },
+      "type" : "array"
+    },
+    "view" : {
+      "description" : "the mark as a SwiftUI view, by its type's name (SeerMark): one Swift file whose view draws Image(\"LogoMark\") resizable and scaled to fit, filling whatever frame it is given",
+      "type" : "string"
+    },
+    "viewInto" : {
+      "description" : "the folder for the view's file, relative to the project; Shared/Design when left out",
+      "type" : "string"
+    },
+    "wordmark" : {
+      "description" : "the text of the wordmark and lockup; the name when left out",
+      "type" : "string"
+    }
+  },
+  "required" : [
+
+  ],
+  "title" : "What assets takes (craft-agent/1)",
+  "type" : "object"
+}

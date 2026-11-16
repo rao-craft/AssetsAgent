@@ -1,10 +1,11 @@
 //  WHAT: An app's brand in its asset catalog, as a Granite agent package. A call gives the app's name and, as it
-//        likes, a mark (letters, a geometric glyph or a picture), colours, palette lines, symbol and data lines;
-//        the run draws on this Mac with CoreGraphics and CoreText (the app icon at every size and appearance, the
-//        accent and palette colours, vector logos, a launch logo, placeholder avatars, empty-state illustrations,
-//        custom symbols) and writes each set with the `Contents.json` Xcode would write for it.
-//  IN:   Input: the catalog, the name, the mark, the colours, the palette, the font, the wordmark, the sets, the
-//        symbols, the data, the platforms.
+//        likes, a mark (letters, a geometric glyph, a picture or a struck-metal medallion), colours, palette lines,
+//        symbol and data lines; the run draws on this Mac with CoreGraphics and CoreText (the app icon at every size
+//        and appearance, the accent and palette colours, vector logos, a launch logo, placeholder avatars,
+//        empty-state illustrations, custom symbols) and writes each set with the `Contents.json` Xcode would write
+//        for it, and the mark as a SwiftUI view when asked.
+//  IN:   Input: the catalog, the name, the mark (and the medallion's metal, backing, motif and seed), the colours,
+//        the palette, the font, the wordmark, the sets, the symbols, the data, the platforms, the mark's view.
 //  OUT:  AssetsResult: every file written, the catalog, the sets by the names code uses, and what the project
 //        still needs.
 //  PIN:  NO MODEL. The same call draws the same assets every time.
@@ -32,6 +33,14 @@ public struct AssetsAgent: GraniteAgentPackage {
         public var shape: AssetsShape?
         /// The picture, when the mark is an image: a PNG, JPEG, PDF or SVG in the project.
         public var image: String?
+        /// The medallion's metal: silver (the default), bronze, gold, or a hex colour for its middle tone.
+        public var metal: String?
+        /// What the medallion is set in: a hex colour for its stone, or `none`; a light stone grey when left out.
+        public var backing: String?
+        /// The medallion's engraved band: `swirls` (the default) or `plain`.
+        public var motif: String?
+        /// The seed of the medallion's grain: the same seed draws the same pixels; 0 when left out.
+        public var seed: Int?
         /// The icon's background: one hex colour (solid) or two or three (a gradient, top to bottom).
         public var background: [String]?
         /// The mark's colour on the icon, hex; white or ink, by contrast, when left out.
@@ -52,17 +61,23 @@ public struct AssetsAgent: GraniteAgentPackage {
         public var data: [String]?
         /// The platforms the icon is drawn for; iOS and macOS when left out.
         public var platforms: [AssetsPlatform]?
+        /// The mark as a SwiftUI view: the type to write (`SeerMark`), drawing `Image("LogoMark")` to fit its frame.
+        public var view: String?
+        /// The folder for the view's file, relative to the project; `Shared/Design` when left out.
+        public var viewInto: String?
         /// The host's folder.
         public var directory: String?
 
         public init(into: String? = nil, name: String? = nil, mark: AssetsMark? = nil, letters: String? = nil, shape: AssetsShape? = nil,
-                    image: String? = nil, background: [String]? = nil, foreground: String? = nil, palette: [String]? = nil,
+                    image: String? = nil, metal: String? = nil, backing: String? = nil, motif: String? = nil, seed: Int? = nil,
+                    background: [String]? = nil, foreground: String? = nil, palette: [String]? = nil,
                     contrast: Bool? = nil, font: String? = nil, wordmark: String? = nil, sets: [AssetsSet]? = nil, symbols: [String]? = nil,
-                    data: [String]? = nil, platforms: [AssetsPlatform]? = nil, directory: String? = nil) {
+                    data: [String]? = nil, platforms: [AssetsPlatform]? = nil, view: String? = nil, viewInto: String? = nil, directory: String? = nil) {
             self.into = into; self.name = name; self.mark = mark; self.letters = letters; self.shape = shape; self.image = image
+            self.metal = metal; self.backing = backing; self.motif = motif; self.seed = seed
             self.background = background; self.foreground = foreground; self.palette = palette; self.contrast = contrast
             self.font = font; self.wordmark = wordmark; self.sets = sets; self.symbols = symbols; self.data = data
-            self.platforms = platforms; self.directory = directory
+            self.platforms = platforms; self.view = view; self.viewInto = viewInto; self.directory = directory
         }
     }
 
@@ -75,10 +90,14 @@ public struct AssetsAgent: GraniteAgentPackage {
     public static let fields = [
         "into": "the asset catalog, relative to the project; Shared/Assets.xcassets when left out",
         "name": "the app's name: the monogram's initials and the wordmark; the Xcode project's name when left out",
-        "mark": "what the mark is: monogram (letters, the default), shape (a geometric glyph) or image (a picture in the project); a shape's own name (spark, knot, …) draws that shape",
+        "mark": "what the mark is: monogram (letters, the default), shape (a geometric glyph), image (a picture in the project) or medallion (a struck-metal medallion set in stone, drawn as PNGs); a shape's own name (spark, knot, …) draws that shape",
         "letters": "the monogram's one to three letters; the name's initials when left out",
         "shape": "the glyph when mark is shape: ring, knot, wave, spark, stack, leaf, bubble or grid",
         "image": "the picture when mark is image, relative to the project: PNG, JPEG, PDF or SVG; a square opaque PNG is used as the whole icon",
+        "metal": "the medallion's metal: silver (the default), bronze, gold, or a hex colour for its middle tone",
+        "backing": "what the medallion is set in: a hex colour for its stone, or none for nothing (the dish is then the image's edge, clear outside it); a light stone grey when left out",
+        "motif": "the medallion's engraved band: swirls (raised S-curls, the default) or plain",
+        "seed": "a whole number, 0 or more, for the medallion's grain (its brushing and its stone): the same seed draws the same pixels; 0 when left out",
         "background": "the icon's background as hex: one colour (solid) or two or three (a gradient, top to bottom); picked from the name when left out",
         "foreground": "the mark's colour on the icon as hex; white or ink, by contrast, when left out; a colour that would show under 3:1 on the background is set aside for white or ink",
         "palette": "one colour set a line, `name: #light/#dark` (one hex for both); `accent:` also sets AccentColor, `LaunchBackground:` colours the launch screen",
@@ -89,6 +108,8 @@ public struct AssetsAgent: GraniteAgentPackage {
         "symbols": "one custom symbol a line: `name: SVG path data in a 0…100 box`, stroked at every weight; a name ending .fill is filled",
         "data": "one data set a line: `name: path/to/file` in the project",
         "platforms": "the platforms the icon is drawn for: ios, macos, watchos, visionos; ios and macos when left out",
+        "view": "the mark as a SwiftUI view, by its type's name (SeerMark): one Swift file whose view draws Image(\"LogoMark\") resizable and scaled to fit, filling whatever frame it is given",
+        "viewInto": "the folder for the view's file, relative to the project; Shared/Design when left out",
     ]
     public static let guide = """
         Tag assets to brand an app: its icon for every platform and appearance, its accent and palette colours, its \
@@ -100,8 +121,15 @@ public struct AssetsAgent: GraniteAgentPackage {
         "palette": ["paper: #FFF8F0/#1C1714", "herb: #3A7D44/#7BC98A"]}. A glyph instead of letters (ring, knot, \
         wave, spark, stack, leaf, bubble or grid): {"name": "Simmer", "mark": "shape", "shape": "leaf", \
         "background": ["#2F855A"]}. The project's own picture: {"name": "Simmer", "mark": "image", "image": \
-        "Design/simmer-mark.svg"} (a square opaque PNG is used as the whole icon). `background` is one hex colour \
-        (solid) or two or three (a gradient, top to bottom), picked from the name when left out; `foreground` \
+        "Design/simmer-mark.svg"} (a square opaque PNG is used as the whole icon). A struck-metal medallion set in \
+        stone, with the mark as a SwiftUI view: {"name": "Seer", "mark": "medallion", "metal": "silver", "view": \
+        "SeerMark", "background": ["#2A2622", "#4A4038"]}; `metal` is silver, bronze, gold or a hex colour, \
+        `backing` a hex colour for the stone or none, `motif` swirls or plain, `seed` a whole number for its grain. \
+        The medallion is Logo, LogoMark and LaunchLogo (PNGs at 1x, 2x and 3x) and sits on the icon's ground; \
+        `view` writes one Swift file, in Shared/Design unless `viewInto` names another folder, whose view draws \
+        Image("LogoMark") to fit whatever frame it is given: SeerMark().frame(width: 100, height: 100). \
+        `background` is one hex colour (solid) or two or three (a gradient, top to bottom), picked from the name \
+        when left out; `foreground` \
         colours the mark, white or ink by contrast when left out. A palette line is `name: #light/#dark`, one \
         colour set each; a line named `accent` also sets AccentColor and `LaunchBackground` colours the launch \
         screen; `contrast: true` adds high-contrast colours to every set. `symbols` draws custom symbols from SVG \
@@ -143,12 +171,12 @@ public struct AssetsAgent: GraniteAgentPackage {
         }
     }
 
-    /// The whole call: the input read, the assets drawn, staged, compiled and written.
+    /// The whole call: the input read, the assets drawn, staged, compiled and written, and the mark's view with them.
     static func write(_ input: Input, check: Bool = true, note: @Sendable (String) -> Void, yield: (AssetsFrame) -> Void) throws -> AssetsResult {
         let plan = try AssetsPlan.make(input)
         yield(.planned(sets: plan.sets.count))
         let place = plan.files.relative(plan.catalog)
-        note("drawing \(plan.brand.name)'s \(plan.sets.map(\.rawValue).joined(separator: ", ")) into \(place)")
+        if !plan.sets.isEmpty { note("drawing \(plan.brand.name)'s \(plan.sets.map(\.rawValue).joined(separator: ", ")) into \(place)") }
 
         var sets: [CatalogSet] = []
         let brand = plan.brand
@@ -168,39 +196,60 @@ public struct AssetsAgent: GraniteAgentPackage {
         if plan.sets.contains(.symbols) { sets += plan.symbols.map(SymbolSets.make) }
         if plan.sets.contains(.data) { sets += try plan.data.map { try DataSets.make($0.spec, file: $0.file) } }
 
-        var warnings: [String] = []
-        let written = try CatalogWriter(catalog: plan.catalog).write(sets) { staged in
-            if Task.isCancelled { throw CancellationError() }
-            guard check else { return }
-            note("compiling the catalog with actool for \(plan.platforms.map(\.rawValue).joined(separator: ", "))")
-            let icon = plan.sets.contains(.icon)
-            var errors: [String] = []
-            for platform in plan.platforms {
-                let appIcon = icon ? (platform == .watchos && plan.platforms.contains(.macos) ? "WatchAppIcon" : "AppIcon") : nil
-                let output = staged.deletingLastPathComponent().appendingPathComponent("compiled-\(platform.rawValue)")
-                guard let report = try ActoolCheck.compile(staged, for: .of(platform, appIcon: appIcon), into: output) else { continue }
-                errors += report.errors.map { "\(platform.rawValue): \($0)" }
-                warnings += report.warnings.map { "actool warns for \(platform.rawValue): \($0)" }
-            }
-            if !errors.isEmpty { throw AssetsError.uncompiled(errors) }
-            if Task.isCancelled { throw CancellationError() }
+        // PIN: THE VIEW LANDS WITH THE CATALOG. It is written once the staged catalog has compiled and before its sets
+        // are swapped in, so a call that fails its check writes neither.
+        var viewWritten: [String] = []
+        func landView() throws {
+            guard let view = plan.view else { return }
+            viewWritten = try plan.files.write([(view.file, MarkView.source(name: view.name))])
+            note("wrote \(view.name) into \(plan.files.relative(view.file.deletingLastPathComponent()))")
         }
-        note("wrote \(sets.count) set\(sets.count == 1 ? "" : "s") (\(written.count) files) into \(place)")
+        var warnings: [String] = []
+        var written: [String] = []
+        if sets.isEmpty {
+            try landView()
+        } else {
+            written = try CatalogWriter(catalog: plan.catalog).write(sets) { staged in
+                if Task.isCancelled { throw CancellationError() }
+                if check {
+                    note("compiling the catalog with actool for \(plan.platforms.map(\.rawValue).joined(separator: ", "))")
+                    let icon = plan.sets.contains(.icon)
+                    var errors: [String] = []
+                    for platform in plan.platforms {
+                        let appIcon = icon ? (platform == .watchos && plan.platforms.contains(.macos) ? "WatchAppIcon" : "AppIcon") : nil
+                        let output = staged.deletingLastPathComponent().appendingPathComponent("compiled-\(platform.rawValue)")
+                        guard let report = try ActoolCheck.compile(staged, for: .of(platform, appIcon: appIcon), into: output) else { continue }
+                        errors += report.errors.map { "\(platform.rawValue): \($0)" }
+                        warnings += report.warnings.map { "actool warns for \(platform.rawValue): \($0)" }
+                    }
+                    if !errors.isEmpty { throw AssetsError.uncompiled(errors) }
+                    if Task.isCancelled { throw CancellationError() }
+                }
+                try landView()
+            }
+            note("wrote \(sets.count) set\(sets.count == 1 ? "" : "s") (\(written.count) files) into \(place)")
+        }
 
         let launchColor = plan.palette.contains { $0.name.lowercased() == "launchbackground" }
         var notes = plan.notes + warnings + ProjectWiring.notes(root: plan.files.root, sets: plan.sets, platforms: plan.platforms, launchColor: launchColor)
-        if plan.sets.contains(.icon), !Self.isWholeIcon(brand), brand.tones.markContrast < 3 {
+        if plan.sets.contains(.icon), !Self.isWholeIcon(brand), !Self.isMedallion(brand), brand.tones.markContrast < 3 {
             notes.append(String(format: "the mark's colour %@ has %.1f:1 contrast on the icon's background; 3:1 or more keeps it legible at 16 pixels",
                                 brand.tones.mark.hex, brand.tones.markContrast))
         }
         let hero = written.first { $0.hasSuffix("/icon-mac-512@2x.png") } ?? written.first { $0.hasSuffix("/icon-ios.png") }
         var names: [String] = []
         for set in sets where !names.contains(set.name) { names.append(set.name) }
-        return AssetsResult(path: hero ?? written.first, paths: written, catalog: plan.catalog.path, sets: names, notes: notes)
+        return AssetsResult(path: hero ?? written.first ?? viewWritten.first, paths: written + viewWritten, catalog: plan.catalog.path, sets: names, notes: notes)
     }
 
     private static func isWholeIcon(_ brand: Brand) -> Bool {
         if case .image(let picture) = brand.mark { return picture.isFullBleed }
+        return false
+    }
+
+    /// A medallion keeps its own colours: no ink of the brand's is measured on it.
+    private static func isMedallion(_ brand: Brand) -> Bool {
+        if case .medallion = brand.mark { return true }
         return false
     }
 }

@@ -1,5 +1,5 @@
-//  WHAT: The brand's mark ready to draw: its outlines fitted to a unit box (or its picture), the share of a frame it
-//        takes, and how it is painted in one ink.
+//  WHAT: The brand's mark ready to draw: its outlines fitted to a unit box (or its picture, or its medallion), the
+//        share of a frame it takes, and how it is painted in one ink (a picture and a medallion keep their own colours).
 //  PIN:  OPTICAL SIZE, NOT BOX SIZE. A single letter, two letters, a ring and a square grid fill their boxes
 //        differently; each takes the share of the frame that makes them all look the same size on an icon, and a
 //        narrow letter stands taller than a round one.
@@ -16,6 +16,8 @@ struct MarkArt {
     var share: CGFloat
     /// The outlines' bounds in the unit box (all of it for a picture).
     var bounds: CGRect
+    /// The medallion, when the mark is one: a picture drawn at the size it is painted at.
+    var medallion: MedallionPainter? = nil
 
     static func make(_ brand: Brand, size: MarkSize = .regular) throws -> MarkArt {
         var art: MarkArt
@@ -39,8 +41,11 @@ struct MarkArt {
             let bounds = aspect >= 1 ? CGRect(x: 0, y: (1 - 1 / aspect) / 2, width: 1, height: 1 / aspect)
                                      : CGRect(x: (1 - aspect) / 2, y: 0, width: aspect, height: 1)
             art = MarkArt(layers: [], picture: picture, share: picture.isFullBleed ? 1 : 0.62, bounds: bounds)
+        case .medallion(let medallion):
+            // A disc that is the whole mark: it fills more of an icon than a glyph, the same at every size.
+            art = MarkArt(layers: [], picture: nil, share: 0.76, bounds: CGRect(x: 0, y: 0, width: 1, height: 1), medallion: MedallionPainter(medallion))
         }
-        if art.picture?.isFullBleed != true {
+        if art.picture?.isFullBleed != true, art.medallion == nil {
             if size == .small { art.share = min(art.share * 1.14, 0.74) }
             if size == .tiny { art.share = min(art.share * 1.24, 0.78) }
         }
@@ -67,8 +72,13 @@ struct MarkArt {
         return CGRect(x: frame.midX - side / 2, y: frame.midY - side / 2, width: side, height: side)
     }
 
-    /// Paints the mark with its unit box on `box`: outlines in `ink` at each layer's opacity, a picture as it is.
+    /// Paints the mark with its unit box on `box`: outlines in `ink` at each layer's opacity, a picture or a medallion
+    /// as it is.
     func paint(in box: CGRect, ink: SRGBColor, context: CGContext) {
+        if let medallion {
+            medallion.draw(in: box, context: context)
+            return
+        }
         if let picture {
             picture.draw(in: box, context: context)
             return

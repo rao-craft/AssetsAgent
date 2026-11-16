@@ -9,8 +9,10 @@ public enum AssetsMark: String, Codable, Sendable, CaseIterable {
     case shape
     /// A picture the project already has: a PNG, JPEG, PDF or SVG.
     case image
+    /// A struck-metal medallion set in stone, drawn on the Mac pixel by pixel (`metal`, `backing`, `motif`, `seed`).
+    case medallion
     case ring, knot, wave, spark, stack, leaf, bubble, grid
 
-    /// The shape a shape's own name draws; nil for monogram, shape and image.
+    /// The shape a shape's own name draws; nil for monogram, shape, image and medallion.
     var namedShape: AssetsShape? { AssetsShape(rawValue: rawValue) }
 }

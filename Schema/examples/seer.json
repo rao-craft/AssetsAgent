@@ -1,0 +1,10 @@
+{
+  "name": "Seer",
+  "mark": "medallion",
+  "metal": "silver",
+  "view": "SeerMark",
+  "background": ["#2A2622", "#4A4038"],
+  "palette": ["accent: #AE9060"],
+  "platforms": ["ios", "macos"],
+  "seed": 7
+}
