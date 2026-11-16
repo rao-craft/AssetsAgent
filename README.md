@@ -12,6 +12,7 @@ $assets brand the recipe app Simmer: its S in Didot on a warm orange gradient, a
 $assets a leaf on a deep green for Simmer's icon, drawn for the Apple Watch and Vision Pro too
 $assets use Design/simmer-mark.svg as the mark
 $assets a whisk symbol and a timer symbol
+$assets a struck silver medallion as Seer's mark, and a SeerMark view to show it
 ```
 
 Craft's model writes the call; it shows on Craft's agent map, and the catalog it names is built with the turn.
@@ -24,12 +25,17 @@ Craft's model writes the call; it shows on Craft's agent map, and the catalog it
   high-contrast colours when asked.
 - **Logos and a launch logo.** Vector PDFs of the badge, the mark alone, the name in the brand's face and the two
   together, light and dark.
+- **A struck-metal medallion.** A photoreal mark drawn pixel by pixel: a brushed dome, polished rings, a band of
+  raised swirls and a stone backing, in silver, bronze, gold or a colour of your own, the same pixels for the same
+  seed. It becomes the logo, the mark and the launch logo (PNGs at 1x, 2x and 3x) and sits on the icon.
+- **The mark as a view.** Name a SwiftUI type, such as `SeerMark`, and `assets` writes it: one file whose view draws
+  the mark to fit whatever frame it is given, for iOS and macOS, in Swift 5 or 6.
 - **Placeholders and empty states.** A neutral avatar and four sample avatars for previews and seed data, and pictures
   for an empty inbox, an empty search, offline and an error.
 - **Custom symbols and data.** An SF Symbols template from SVG path data, at every weight and scale, and project files
   kept as data sets.
 - **Names your code already reads.** `Image("Logo")`, `Color("paper")`, `Color.accentColor`, `Image("whisk")`,
-  `NSDataAsset(name: "pantry")`.
+  `NSDataAsset(name: "pantry")`, and `SeerMark()` when you name the view.
 
 ## How it works
 
@@ -40,7 +46,8 @@ Craft's model writes the call; it shows on Craft's agent map, and the catalog it
 - The catalog is compiled by Xcode's asset catalog compiler for every platform asked for before it lands; an error
   writes nothing. Running it again swaps in only the sets it makes and leaves every other set alone.
 - It does not edit the Xcode project. The answer says what the project still needs for the assets to show, such as an
-  app target that names no icon.
+  app target that names no icon. Outside the catalog it writes only the view you name, parsed by Swift first and
+  landed with the catalog.
 
 ## Works well with
 
@@ -64,6 +71,7 @@ In Craft, install Assets from the Agent Store, or run
 ## For developers
 
 What a call takes and answers, the lines it reads, the sets it makes and how each is drawn are in the
-[reference](Docs/Reference.md). The agent standard it follows is Granite's
+[reference](Docs/Reference.md); every field is in [Schema/assets.input.schema.json](Schema/assets.input.schema.json),
+and [Schema/examples](Schema/examples) holds example calls. The agent standard it follows is Granite's
 [granite-agent/1](https://github.com/riteshpakala/Granite/blob/main/Schema/GraniteAgent.md), and how it is tested is
 [TESTING.md](TESTING.md).
