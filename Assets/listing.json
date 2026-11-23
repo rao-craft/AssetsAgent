@@ -15,5 +15,12 @@
   "platforms": [
     "macOS 14"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "illustrations": [
+    {
+      "path": "Assets/illustrations/what-you-get.png",
+      "alt": "An asset catalog holding an app icon in any, dark and tinted looks, light and dark colour sets, a logo, avatars, an empty state and a whisk symbol, beside code that reads them by name.",
+      "caption": "An app icon, colours, logos and symbols in your asset catalog."
+    }
+  ]
 }
